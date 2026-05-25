@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import asyncio
-import subprocess
 import tempfile
 from pathlib import Path
 from typing import Callable, Sequence
+
+from .process import run_hidden
 
 
 class TtsService:
@@ -24,7 +25,7 @@ class TtsService:
     def speak(self, text: str) -> None:
         if self._command:
             command = [part.replace("{text}", text) for part in self._command]
-            subprocess.run(command, check=True)
+            run_hidden(command, check=True)
             return
 
         errors: list[str] = []
@@ -41,7 +42,7 @@ def speak_with_edge_tts(text: str) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         output_path = str(Path(temp_dir) / "voice.mp3")
         asyncio.run(_save_edge_tts(text, output_path))
-        subprocess.run(build_powershell_mp3_playback_command(output_path), check=True)
+        run_hidden(build_powershell_mp3_playback_command(output_path), check=True)
 
 
 async def _save_edge_tts(text: str, output_path: str) -> None:
@@ -68,7 +69,7 @@ def speak_with_pyttsx3(text: str) -> None:
 
 
 def speak_with_powershell(text: str) -> None:
-    subprocess.run(build_powershell_speech_command(text), check=True)
+    run_hidden(build_powershell_speech_command(text), check=True)
 
 
 def build_powershell_mp3_playback_command(path: str) -> list[str]:

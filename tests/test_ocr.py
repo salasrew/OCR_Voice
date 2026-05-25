@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 from ocr_voice.ocr import AutoOcrService, CommandOcrService, OcrCommandError
 
@@ -11,6 +12,18 @@ class OcrTests(unittest.TestCase):
             service.recognize("capture.png")
 
         self.assertIn("missing-ocr-command-for-test", str(context.exception))
+
+    def test_command_ocr_uses_hidden_subprocess(self):
+        service = CommandOcrService(["ocr-cli", "{image}"])
+
+        with patch("ocr_voice.ocr.run_hidden") as run:
+            run.return_value.stdout = "日本語\n"
+
+            self.assertEqual(service.recognize("capture.png"), "日本語")
+
+        self.assertEqual(run.call_args.args[0], ["ocr-cli", "capture.png"])
+        self.assertTrue(run.call_args.kwargs["check"])
+        self.assertTrue(run.call_args.kwargs["capture_output"])
 
     def test_auto_ocr_uses_microsoft_ocr_first(self):
         calls = []

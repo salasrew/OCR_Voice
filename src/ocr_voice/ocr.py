@@ -5,6 +5,8 @@ from pathlib import Path
 import subprocess
 from typing import Callable, Protocol
 
+from .process import run_hidden
+
 
 class OcrCommandError(RuntimeError):
     pass
@@ -68,7 +70,7 @@ class CommandOcrService:
 
         command = [part.replace("{image}", image_path) for part in self._command]
         try:
-            completed = subprocess.run(
+            completed = run_hidden(
                 command,
                 check=True,
                 capture_output=True,

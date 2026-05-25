@@ -1,6 +1,12 @@
 import unittest
+from unittest.mock import patch
 
-from ocr_voice.tts import TtsService, build_powershell_speech_command, build_powershell_mp3_playback_command
+from ocr_voice.tts import (
+    TtsService,
+    build_powershell_mp3_playback_command,
+    build_powershell_speech_command,
+    speak_with_powershell,
+)
 
 
 class TtsTests(unittest.TestCase):
@@ -30,6 +36,13 @@ class TtsTests(unittest.TestCase):
         service.speak("日本語")
 
         self.assertEqual(calls, [("windows", "日本語")])
+
+    def test_powershell_speech_uses_hidden_subprocess(self):
+        with patch("ocr_voice.tts.run_hidden") as run:
+            speak_with_powershell("日本語")
+
+        self.assertIn("powershell", run.call_args.args[0][0])
+        self.assertTrue(run.call_args.kwargs["check"])
 
 
 if __name__ == "__main__":
