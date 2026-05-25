@@ -1,0 +1,18 @@
+mss>=9.0
+pillow>=10.0
+pynput>=1.7
+edge-tts>=7.2
+pyttsx3>=2.99
+pywin32>=311; platform_system == "Windows"
+winrt-Windows.Foundation>=3.2.1; platform_system == "Windows"
+winrt-Windows.Foundation.Collections>=3.2.1; platform_system == "Windows"
+winrt-Windows.Globalization>=3.2.1; platform_system == "Windows"
+winrt-Windows.Graphics.DirectX>=3.2.1; platform_system == "Windows"
+winrt-Windows.Graphics.Imaging>=3.2.1; platform_system == "Windows"
+winrt-Windows.Media.Ocr>=3.2.1; platform_system == "Windows"
+winrt-Windows.Storage>=3.2.1; platform_system == "Windows"
+winrt-Windows.Storage.FileProperties>=3.2.1; platform_system == "Windows"
+winrt-Windows.Storage.Provider>=3.2.1; platform_system == "Windows"
+winrt-Windows.Storage.Search>=3.2.1; platform_system == "Windows"
+winrt-Windows.Storage.Streams>=3.2.1; platform_system == "Windows"
+winrt-Windows.System>=3.2.1; platform_system == "Windows"

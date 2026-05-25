@@ -1,0 +1,12 @@
+{
+  "hotkey": "<ctrl>+<shift>+o",
+  "min_selection_width": 8,
+  "min_selection_height": 8,
+  "duplicate_window_seconds": 3.0,
+  "capture_dir": ".ocr_voice_captures",
+  "use_gui": true,
+  "overlay_opacity": 0.45,
+  "border_color": "#00D1FF",
+  "ocr_command": null,
+  "tts_command": null
+}

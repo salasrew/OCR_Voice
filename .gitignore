@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.venv-win/
+.ocr_voice_captures/
+config.json
+build/
+build-fixed/
+build-gui/
+dist/
+dist-fixed/
+dist-gui/
+OCRVoice-gui/
+OCRVoice-size/
+*.zip
+*.spec
