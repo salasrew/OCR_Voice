@@ -11,6 +11,7 @@ from .config import AppConfig, TriggerConfig, load_config, save_trigger_config
 from .geometry import Rect, rect_from_points
 from .gui_actions import UiActionQueue
 from .help_content import help_sections
+from .help_window import help_window_size, help_wrap_length
 from .screen import primary_monitor_rect
 from .tray import TrayApp
 from .tts import TtsService
@@ -264,19 +265,47 @@ class StatusGui:
     def _show_help(self) -> None:
         window = tk.Toplevel(self.root)
         window.title("OCR Voice Help")
-        window.geometry("520x420")
+        window.geometry(help_window_size())
         window.resizable(False, False)
         window.transient(self.root)
 
-        frame = ttk.Frame(window, padding=16)
-        frame.pack(fill="both", expand=True)
+        outer = ttk.Frame(window, padding=16)
+        outer.pack(fill="both", expand=True)
 
-        ttk.Label(frame, text="Help", font=("Segoe UI", 16, "bold")).pack(anchor="w")
+        canvas = tk.Canvas(outer, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(outer, orient="vertical", command=canvas.yview)
+        content = ttk.Frame(canvas)
+        content_id = canvas.create_window((0, 0), window=content, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
+        def on_configure(event: tk.Event) -> None:
+            canvas.configure(scrollregion=canvas.bbox("all"))
+            canvas.itemconfigure(content_id, width=int(event.width))
+
+        content.bind("<Configure>", lambda event: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.bind("<Configure>", on_configure)
+        def on_close() -> None:
+            canvas.unbind_all("<MouseWheel>")
+            window.destroy()
+
+        def on_mouse_wheel(event: tk.Event) -> None:
+            canvas.yview_scroll(int(-event.delta / 120), "units")
+
+        canvas.bind("<Enter>", lambda event: canvas.bind_all("<MouseWheel>", on_mouse_wheel))
+        canvas.bind("<Leave>", lambda event: canvas.unbind_all("<MouseWheel>"))
+        window.protocol("WM_DELETE_WINDOW", on_close)
+
+        ttk.Label(content, text="Help", font=("Segoe UI", 16, "bold")).pack(anchor="w")
         for section in help_sections():
-            ttk.Label(frame, text=section.title, font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(14, 0))
-            ttk.Label(frame, text=section.body, wraplength=470, justify="left").pack(anchor="w", pady=(4, 0))
+            ttk.Label(content, text=section.title, font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(14, 0))
+            ttk.Label(content, text=section.body, wraplength=help_wrap_length(), justify="left").pack(
+                anchor="w", pady=(4, 0)
+            )
 
-        ttk.Button(frame, text="Close", command=window.destroy).pack(anchor="e", pady=(16, 0))
+        ttk.Button(content, text="Close", command=on_close).pack(anchor="e", pady=(16, 0))
 
     def _show_help_from_tray(self) -> None:
         self.show_window()
