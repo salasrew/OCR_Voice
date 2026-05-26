@@ -1,24 +1,42 @@
 # OCR Voice
 
-Windows-first prototype for Japanese language learning in games. Press a configurable hotkey, drag a Snipaste-style region around Japanese text, OCR the screenshot, and speak the recognized text aloud.
+Windows-first prototype for Japanese language learning in games. Press a configurable trigger, drag a Snipaste-style region around Japanese text, OCR the screenshot, and speak the recognized text aloud.
 
-The packaged app opens a small status window showing the configured hotkey, OCR configuration state, and latest status or error. OCR uses Microsoft Windows OCR first, and TTS uses Microsoft Windows speech first.
+The packaged app opens a small status window showing the configured trigger, OCR configuration state, and latest status or error. OCR uses Microsoft Windows OCR first, and TTS uses Microsoft Windows speech first.
 
 ## Workflow
 
 1. Start `OCRVoice.exe` or run the Python module.
-2. Press the configured hotkey. The default is `Ctrl+Shift+O`.
+2. Press the configured trigger. The default is `Ctrl+Shift+O`.
 3. Drag a rectangle around Japanese text.
 4. Release the mouse button to capture, OCR, and speak the selected region.
 5. Press `Esc` during selection to cancel.
 
-The hotkey can be changed in `config.json`:
+The trigger can be changed in the status window with `Change...`, then pressing a keyboard combo or mouse button. Left mouse button is rejected because it would interfere with normal clicks. `Esc` cancels capture.
+
+The trigger is saved in `config.json`:
 
 ```json
 {
-  "hotkey": "<ctrl>+<shift>+o"
+  "trigger": {
+    "type": "keyboard",
+    "value": "<ctrl>+<shift>+o"
+  }
 }
 ```
+
+Mouse trigger example:
+
+```json
+{
+  "trigger": {
+    "type": "mouse",
+    "value": "right"
+  }
+}
+```
+
+The older `hotkey` setting is still supported for existing configs.
 
 ## Setup
 

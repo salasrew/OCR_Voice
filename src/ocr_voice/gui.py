@@ -3,13 +3,15 @@ from __future__ import annotations
 import queue
 import threading
 import tkinter as tk
+from pathlib import Path
 from tkinter import ttk
 from typing import Callable
 
-from .config import AppConfig
+from .config import AppConfig, TriggerConfig, load_config, save_trigger_config
 from .geometry import Rect, rect_from_points
 from .screen import primary_monitor_rect
 from .tts import TtsService
+from .trigger import format_trigger_label, keyboard_trigger_from_tk_parts, mouse_trigger_from_tk_button
 
 
 class GuiLog:
@@ -123,22 +125,32 @@ class SelectionOverlay:
 
 
 class StatusGui:
-    def __init__(self, config: AppConfig) -> None:
+    def __init__(self, config: AppConfig, *, config_path: str | Path | None = "config.json") -> None:
+        self._config = config
+        self._config_path = Path(config_path or "config.json")
+        self._on_trigger_changed: Callable[[AppConfig], None] | None = None
+        self._waiting_for_trigger = False
         self.root = tk.Tk()
         self.root.title("OCR Voice")
-        self.root.geometry("520x300")
-        self.root.minsize(480, 280)
+        self.root.geometry("560x340")
+        self.root.minsize(520, 320)
         self.messages: "queue.Queue[str]" = queue.Queue()
         self.logger = GuiLog(self.messages)
         self.selection_overlay = SelectionOverlay(self.root, config)
         self._status_var = tk.StringVar(value="Ready")
-        self._last_message_var = tk.StringVar(value=f"Press {config.hotkey} to select Japanese text.")
+        self._trigger_var = tk.StringVar(value=format_trigger_label(config.trigger))
+        self._last_message_var = tk.StringVar(
+            value=f"Press {format_trigger_label(config.trigger)} to select Japanese text."
+        )
         self._build(config)
         self._poll_messages()
 
     def run_listener(self, target) -> None:
         thread = threading.Thread(target=target, daemon=True)
         thread.start()
+
+    def set_trigger_changed_callback(self, callback: Callable[[AppConfig], None]) -> None:
+        self._on_trigger_changed = callback
 
     def start_selection(self, processor: Callable[[Rect], None]) -> None:
         self.logger("Selection started.")
@@ -159,7 +171,12 @@ class StatusGui:
         title = ttk.Label(frame, text="OCR Voice", font=("Segoe UI", 18, "bold"))
         title.pack(anchor="w")
 
-        ttk.Label(frame, text=f"Hotkey: {config.hotkey}").pack(anchor="w", pady=(8, 0))
+        trigger_row = ttk.Frame(frame)
+        trigger_row.pack(fill="x", pady=(8, 0))
+        ttk.Label(trigger_row, text="Trigger:").pack(side="left")
+        ttk.Label(trigger_row, textvariable=self._trigger_var).pack(side="left", padx=(6, 0))
+        ttk.Button(trigger_row, text="Change...", command=self._start_trigger_capture).pack(side="right")
+        ttk.Button(trigger_row, text="Reset", command=self._reset_trigger).pack(side="right", padx=(0, 8))
 
         actions = ttk.Frame(frame)
         actions.pack(fill="x", pady=(10, 0))
@@ -183,7 +200,7 @@ class StatusGui:
             text=(
                 "1. Set ocr_command in config.json.\n"
                 "2. Use borderless-windowed game mode if the overlay is hidden.\n"
-                "3. Press the hotkey, drag around Japanese text, and release."
+                "3. Press the trigger, drag around Japanese text, and release."
             ),
             justify="left",
         ).pack(anchor="w", pady=(4, 0))
@@ -204,6 +221,59 @@ class StatusGui:
                 self.logger(f"Voice test failed: {error}")
 
         threading.Thread(target=worker, daemon=True).start()
+
+    def _start_trigger_capture(self) -> None:
+        if self._waiting_for_trigger:
+            return
+        self._waiting_for_trigger = True
+        self.logger("Press a key combo or mouse button. Esc cancels.")
+        self.root.focus_force()
+        self.root.bind("<KeyPress>", self._capture_key_trigger)
+        self.root.bind("<ButtonPress>", self._capture_mouse_trigger)
+
+    def _capture_key_trigger(self, event: tk.Event) -> str | None:
+        if getattr(event, "keysym", "") == "Escape":
+            self._cancel_trigger_capture()
+            self.logger("Trigger change cancelled.")
+            return "break"
+
+        trigger = keyboard_trigger_from_tk_parts(str(event.keysym), int(event.state))
+        if trigger is None:
+            return "break"
+        self._apply_trigger(trigger)
+        return "break"
+
+    def _capture_mouse_trigger(self, event: tk.Event) -> str | None:
+        trigger = mouse_trigger_from_tk_button(int(event.num))
+        if trigger is None:
+            self.logger("Left mouse button is not allowed as a global trigger.")
+            return "break"
+        self._apply_trigger(trigger)
+        return "break"
+
+    def _reset_trigger(self) -> None:
+        self._apply_trigger(TriggerConfig(type="keyboard", value="<ctrl>+<shift>+o"))
+
+    def _cancel_trigger_capture(self) -> None:
+        self._waiting_for_trigger = False
+        self.root.unbind("<KeyPress>")
+        self.root.unbind("<ButtonPress>")
+
+    def _apply_trigger(self, trigger: TriggerConfig) -> None:
+        self._cancel_trigger_capture()
+        try:
+            save_trigger_config(self._config_path, trigger)
+            self._config = load_config(self._config_path)
+        except Exception as error:
+            self.logger(f"Trigger save failed: {error}")
+            return
+
+        self._trigger_var.set(format_trigger_label(trigger))
+        self._last_message_var.set(f"Press {format_trigger_label(trigger)} to select Japanese text.")
+        self.selection_overlay = SelectionOverlay(self.root, self._config)
+        if self._on_trigger_changed is not None:
+            self._on_trigger_changed(self._config)
+        self.logger(f"Trigger changed to {format_trigger_label(trigger)}.")
 
     def _poll_messages(self) -> None:
         while True:

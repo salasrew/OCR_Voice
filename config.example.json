@@ -1,5 +1,9 @@
 {
   "hotkey": "<ctrl>+<shift>+o",
+  "trigger": {
+    "type": "keyboard",
+    "value": "<ctrl>+<shift>+o"
+  },
   "min_selection_width": 8,
   "min_selection_height": 8,
   "duplicate_window_seconds": 3.0,
