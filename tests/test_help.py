@@ -7,7 +7,10 @@ class HelpContentTests(unittest.TestCase):
     def test_help_sections_cover_ocr_tts_and_capture_notes(self):
         sections = help_sections()
 
-        self.assertEqual([section.title for section in sections], ["Japanese OCR", "Japanese TTS", "Capture Notes"])
+        self.assertEqual(
+            [section.title for section in sections],
+            ["Japanese OCR", "Japanese TTS", "Capture Notes", "System Tray"],
+        )
 
         text = help_text()
 
@@ -16,6 +19,8 @@ class HelpContentTests(unittest.TestCase):
         self.assertIn("Test Voice", text)
         self.assertIn("borderless-windowed", text)
         self.assertIn("Captured images are deleted", text)
+        self.assertIn("Windows system tray", text)
+        self.assertIn("Exit", text)
 
 
 if __name__ == "__main__":

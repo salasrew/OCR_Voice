@@ -38,6 +38,14 @@ def help_sections() -> list[HelpSection]:
                 "finishes."
             ),
         ),
+        HelpSection(
+            title="System Tray",
+            body=(
+                "Closing the main window hides OCR Voice to the Windows system tray. Use "
+                "the tray menu to Show the window, open Help, run Test Voice, or Exit the "
+                "app completely."
+            ),
+        ),
     ]
 
 

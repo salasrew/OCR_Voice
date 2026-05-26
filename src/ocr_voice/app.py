@@ -28,6 +28,7 @@ def run(config_path: str | Path | None = "config.json") -> None:
         controller = build_controller(config, logger=gui.logger)
         listener = TriggerListenerController(config, lambda: gui.start_selection(controller.process_selection))
         gui.set_trigger_changed_callback(listener.update)
+        gui.set_exit_requested_callback(listener.stop)
         listener.start()
         gui.mainloop()
         listener.stop()

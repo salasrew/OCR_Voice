@@ -11,6 +11,7 @@ from .config import AppConfig, TriggerConfig, load_config, save_trigger_config
 from .geometry import Rect, rect_from_points
 from .help_content import help_sections
 from .screen import primary_monitor_rect
+from .tray import TrayApp
 from .tts import TtsService
 from .trigger import format_trigger_label, keyboard_trigger_from_tk_parts, mouse_trigger_from_tk_button
 
@@ -130,6 +131,7 @@ class StatusGui:
         self._config = config
         self._config_path = Path(config_path or "config.json")
         self._on_trigger_changed: Callable[[AppConfig], None] | None = None
+        self._on_exit_requested: Callable[[], None] | None = None
         self._waiting_for_trigger = False
         self.root = tk.Tk()
         self.root.title("OCR Voice")
@@ -140,12 +142,19 @@ class StatusGui:
         self.messages: "queue.Queue[str]" = queue.Queue()
         self.logger = GuiLog(self.messages)
         self.selection_overlay = SelectionOverlay(self.root, config)
+        self._tray = TrayApp(
+            on_show=lambda: self.root.after(0, self.show_window),
+            on_help=lambda: self.root.after(0, self._show_help),
+            on_test_voice=lambda: self.root.after(0, lambda: self._test_voice(self._config)),
+            on_exit=lambda: self.root.after(0, self.exit_app),
+        )
         self._status_var = tk.StringVar(value="Ready")
         self._trigger_var = tk.StringVar(value=format_trigger_label(config.trigger))
         self._last_message_var = tk.StringVar(
             value=f"Press {format_trigger_label(config.trigger)} to select Japanese text."
         )
         self._build(config)
+        self._start_tray()
         self._poll_messages()
 
     def run_listener(self, target) -> None:
@@ -154,6 +163,9 @@ class StatusGui:
 
     def set_trigger_changed_callback(self, callback: Callable[[AppConfig], None]) -> None:
         self._on_trigger_changed = callback
+
+    def set_exit_requested_callback(self, callback: Callable[[], None]) -> None:
+        self._on_exit_requested = callback
 
     def start_selection(self, processor: Callable[[Rect], None]) -> None:
         self.logger("Selection started.")
@@ -169,6 +181,24 @@ class StatusGui:
 
     def hide_to_background(self) -> None:
         self.root.withdraw()
+        self.logger("OCR Voice is still running in the system tray.")
+
+    def show_window(self) -> None:
+        self.root.deiconify()
+        self.root.lift()
+        self.root.focus_force()
+
+    def exit_app(self) -> None:
+        self._tray.stop()
+        if self._on_exit_requested is not None:
+            self._on_exit_requested()
+        self.root.destroy()
+
+    def _start_tray(self) -> None:
+        try:
+            self._tray.start()
+        except Exception as error:
+            self.logger(f"System tray unavailable: {error}")
 
     def _build(self, config: AppConfig) -> None:
         frame = ttk.Frame(self.root, padding=16)

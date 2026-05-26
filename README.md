@@ -12,6 +12,8 @@ The packaged app opens a small status window showing the configured trigger, OCR
 4. Release the mouse button to capture, OCR, and speak the selected region.
 5. Press `Esc` during selection to cancel.
 
+Closing the main window hides OCR Voice to the Windows system tray. Use the tray menu to show the window again, open Help, run Test Voice, or exit the app completely.
+
 The trigger can be changed in the status window with `Change...`, then pressing a keyboard combo or mouse button. Left mouse button is rejected because it would interfere with normal clicks. `Esc` cancels capture.
 
 The trigger is saved in `config.json`:
@@ -93,3 +95,4 @@ The app includes a `Help` button with the same guidance:
 - Japanese TTS: install a Japanese Windows voice from `Settings > Time & language > Speech` or Japanese language options. Use `Test Voice` to verify playback.
 - Capture: use borderless-windowed mode when possible. Exclusive fullscreen or protected windows may block triggers, overlays, or screen capture.
 - Captured images are deleted after OCR/TTS finishes.
+- System tray: closing the main window keeps OCR Voice running in the tray. Choose `Exit` from the tray menu to quit.

@@ -3,6 +3,7 @@ pillow>=10.0
 pynput>=1.7
 edge-tts>=7.2
 pyttsx3>=2.99
+pystray>=0.19
 pywin32>=311; platform_system == "Windows"
 winrt-Windows.Foundation>=3.2.1; platform_system == "Windows"
 winrt-Windows.Foundation.Collections>=3.2.1; platform_system == "Windows"
