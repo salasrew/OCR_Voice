@@ -19,6 +19,11 @@ class GeometryTests(unittest.TestCase):
 
         self.assertEqual(rect, Rect(left=120, top=80, width=180, height=170))
 
+    def test_rect_from_points_includes_origin_offset(self):
+        rect = rect_from_points(20, 30, 220, 130, origin_left=1920, origin_top=0)
+
+        self.assertEqual(rect, Rect(left=1940, top=30, width=200, height=100))
+
 
 if __name__ == "__main__":
     unittest.main()

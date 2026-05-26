@@ -8,6 +8,7 @@ from typing import Callable
 
 from .config import AppConfig
 from .geometry import Rect, rect_from_points
+from .screen import primary_monitor_rect
 from .tts import TtsService
 
 
@@ -25,6 +26,7 @@ class SelectionOverlay:
         self._config = config
         self._window: tk.Toplevel | None = None
         self._canvas: tk.Canvas | None = None
+        self._bounds: Rect | None = None
         self._start: tuple[int, int] | None = None
         self._outline_id: int | None = None
         self._on_complete: Callable[[Rect], None] | None = None
@@ -37,14 +39,15 @@ class SelectionOverlay:
             return
 
         self._on_complete = on_complete
-        screen_w = self._root.winfo_screenwidth()
-        screen_h = self._root.winfo_screenheight()
+        self._bounds = primary_monitor_rect()
         window = tk.Toplevel(self._root)
         window.overrideredirect(True)
         window.attributes("-topmost", True)
         window.attributes("-alpha", self._config.overlay_opacity)
         window.configure(bg="black")
-        window.geometry(f"{screen_w}x{screen_h}+0+0")
+        window.geometry(
+            f"{self._bounds.width}x{self._bounds.height}+{self._bounds.left}+{self._bounds.top}"
+        )
         window.focus_force()
 
         canvas = tk.Canvas(window, highlightthickness=0, bg="black", cursor="crosshair")
@@ -72,7 +75,15 @@ class SelectionOverlay:
             return
 
         start_x, start_y = self._start
-        rect = rect_from_points(start_x, start_y, int(event.x), int(event.y))
+        bounds = self._bounds or Rect(left=0, top=0, width=0, height=0)
+        rect = rect_from_points(
+            start_x,
+            start_y,
+            int(event.x),
+            int(event.y),
+            origin_left=bounds.left,
+            origin_top=bounds.top,
+        )
         on_complete = self._on_complete
         self._clear()
         if on_complete is not None:
@@ -105,6 +116,7 @@ class SelectionOverlay:
                 pass
         self._window = None
         self._canvas = None
+        self._bounds = None
         self._start = None
         self._outline_id = None
         self._on_complete = None

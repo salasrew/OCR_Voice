@@ -26,12 +26,20 @@ def centered_rect(cursor_x: int, cursor_y: int, *, width: int, height: int) -> R
     return Rect(left=left, top=top, width=width, height=height)
 
 
-def rect_from_points(start_x: int, start_y: int, end_x: int, end_y: int) -> Rect:
+def rect_from_points(
+    start_x: int,
+    start_y: int,
+    end_x: int,
+    end_y: int,
+    *,
+    origin_left: int = 0,
+    origin_top: int = 0,
+) -> Rect:
     left = min(start_x, end_x)
     top = min(start_y, end_y)
     return Rect(
-        left=left,
-        top=top,
+        left=origin_left + left,
+        top=origin_top + top,
         width=abs(end_x - start_x),
         height=abs(end_y - start_y),
     )
