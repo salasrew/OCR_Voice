@@ -9,6 +9,7 @@ from typing import Callable
 
 from .config import AppConfig, TriggerConfig, load_config, save_trigger_config
 from .geometry import Rect, rect_from_points
+from .gui_actions import UiActionQueue
 from .help_content import help_sections
 from .screen import primary_monitor_rect
 from .tray import TrayApp
@@ -132,6 +133,7 @@ class StatusGui:
         self._config_path = Path(config_path or "config.json")
         self._on_trigger_changed: Callable[[AppConfig], None] | None = None
         self._on_exit_requested: Callable[[], None] | None = None
+        self._ui_actions = UiActionQueue()
         self._waiting_for_trigger = False
         self.root = tk.Tk()
         self.root.title("OCR Voice")
@@ -143,10 +145,10 @@ class StatusGui:
         self.logger = GuiLog(self.messages)
         self.selection_overlay = SelectionOverlay(self.root, config)
         self._tray = TrayApp(
-            on_show=lambda: self.root.after(0, self.show_window),
-            on_help=lambda: self.root.after(0, self._show_help),
-            on_test_voice=lambda: self.root.after(0, lambda: self._test_voice(self._config)),
-            on_exit=lambda: self.root.after(0, self.exit_app),
+            on_show=lambda: self._ui_actions.submit(self.show_window),
+            on_help=lambda: self._ui_actions.submit(self._show_help_from_tray),
+            on_test_voice=lambda: self._ui_actions.submit(lambda: self._test_voice(self._config)),
+            on_exit=lambda: self._ui_actions.submit(self.exit_app),
         )
         self._status_var = tk.StringVar(value="Ready")
         self._trigger_var = tk.StringVar(value=format_trigger_label(config.trigger))
@@ -276,6 +278,10 @@ class StatusGui:
 
         ttk.Button(frame, text="Close", command=window.destroy).pack(anchor="e", pady=(16, 0))
 
+    def _show_help_from_tray(self) -> None:
+        self.show_window()
+        self._show_help()
+
     def _start_trigger_capture(self) -> None:
         if self._waiting_for_trigger:
             return
@@ -330,6 +336,7 @@ class StatusGui:
         self.logger(f"Trigger changed to {format_trigger_label(trigger)}.")
 
     def _poll_messages(self) -> None:
+        self._ui_actions.drain()
         while True:
             try:
                 message = self.messages.get_nowait()
