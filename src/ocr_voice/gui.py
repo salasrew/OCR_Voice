@@ -9,6 +9,7 @@ from typing import Callable
 
 from .config import AppConfig, TriggerConfig, load_config, save_trigger_config
 from .geometry import Rect, rect_from_points
+from .help_content import help_sections
 from .screen import primary_monitor_rect
 from .tts import TtsService
 from .trigger import format_trigger_label, keyboard_trigger_from_tk_parts, mouse_trigger_from_tk_button
@@ -190,6 +191,7 @@ class StatusGui:
             text="Test Voice",
             command=lambda: self._test_voice(config),
         ).pack(side="left")
+        ttk.Button(actions, text="Help", command=self._show_help).pack(side="left", padx=(8, 0))
 
         if config.ocr_command:
             ocr_text = "OCR: Microsoft Windows OCR first, command fallback: " + " ".join(config.ocr_command)
@@ -226,6 +228,23 @@ class StatusGui:
                 self.logger(f"Voice test failed: {error}")
 
         threading.Thread(target=worker, daemon=True).start()
+
+    def _show_help(self) -> None:
+        window = tk.Toplevel(self.root)
+        window.title("OCR Voice Help")
+        window.geometry("520x420")
+        window.resizable(False, False)
+        window.transient(self.root)
+
+        frame = ttk.Frame(window, padding=16)
+        frame.pack(fill="both", expand=True)
+
+        ttk.Label(frame, text="Help", font=("Segoe UI", 16, "bold")).pack(anchor="w")
+        for section in help_sections():
+            ttk.Label(frame, text=section.title, font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(14, 0))
+            ttk.Label(frame, text=section.body, wraplength=470, justify="left").pack(anchor="w", pady=(4, 0))
+
+        ttk.Button(frame, text="Close", command=window.destroy).pack(anchor="e", pady=(16, 0))
 
     def _start_trigger_capture(self) -> None:
         if self._waiting_for_trigger:

@@ -84,3 +84,12 @@ The build script does not create a zip. Zip archives are release artifacts and s
 - Use windowed or borderless-windowed game mode if the overlay or screenshot capture is blocked.
 - Exclusive fullscreen or protected games may block global hotkeys, overlays, or screen capture.
 - Captured images are written to `capture_dir`, which defaults to `.ocr_voice_captures`.
+
+## Troubleshooting
+
+The app includes a `Help` button with the same guidance:
+
+- Japanese OCR: install the Windows Japanese OCR language capability from `Settings > Time & language > Language & region` if OCR fails or returns no text.
+- Japanese TTS: install a Japanese Windows voice from `Settings > Time & language > Speech` or Japanese language options. Use `Test Voice` to verify playback.
+- Capture: use borderless-windowed mode when possible. Exclusive fullscreen or protected windows may block triggers, overlays, or screen capture.
+- Captured images are deleted after OCR/TTS finishes.
