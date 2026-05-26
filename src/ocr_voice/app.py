@@ -10,6 +10,7 @@ from .config import AppConfig, load_config
 from .controller import OcrVoiceController
 from .gui import StatusGui
 from .ocr import AutoOcrService
+from .single_instance import SingleInstanceLock
 from .trigger import is_mouse_trigger
 from .tts import TtsService
 
@@ -22,20 +23,28 @@ def build_controller(config: AppConfig, *, logger=print, overlay=None) -> OcrVoi
 
 
 def run(config_path: str | Path | None = "config.json") -> None:
-    config = load_config(config_path)
-    if config.use_gui:
-        gui = StatusGui(config, config_path=config_path)
-        controller = build_controller(config, logger=gui.logger)
-        listener = TriggerListenerController(config, lambda: gui.start_selection(controller.process_selection))
-        gui.set_trigger_changed_callback(listener.update)
-        gui.set_exit_requested_callback(listener.stop)
-        listener.start()
-        gui.mainloop()
-        listener.stop()
+    instance_lock = SingleInstanceLock()
+    if not instance_lock.acquire():
+        print("OCR Voice is already running.")
         return
 
-    controller = build_controller(config)
-    start_mouse_listener(controller, config)
+    config = load_config(config_path)
+    try:
+        if config.use_gui:
+            gui = StatusGui(config, config_path=config_path)
+            controller = build_controller(config, logger=gui.logger)
+            listener = TriggerListenerController(config, lambda: gui.start_selection(controller.process_selection))
+            gui.set_trigger_changed_callback(listener.update)
+            gui.set_exit_requested_callback(listener.stop)
+            listener.start()
+            gui.mainloop()
+            listener.stop()
+            return
+
+        controller = build_controller(config)
+        start_mouse_listener(controller, config)
+    finally:
+        instance_lock.release()
 
 
 def build_hotkey_bindings(config: AppConfig, on_activate: Callable[[], None]) -> dict[str, Callable[[], None]]:
