@@ -1,4 +1,6 @@
 import unittest
+from pathlib import Path
+import tempfile
 
 from ocr_voice.config import AppConfig
 from ocr_voice.controller import OcrVoiceController
@@ -255,6 +257,41 @@ class ControllerTests(unittest.TestCase):
         controller.process_selection(Rect(left=10, top=20, width=120, height=80))
 
         self.assertEqual(logger.messages, ["TTS failed: voice unavailable"])
+
+    def test_captured_image_is_deleted_after_tts_finishes(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            image_path = Path(temp_dir) / "capture.png"
+            image_path.write_bytes(b"image")
+            capture = FakeCapture()
+            capture.capture = lambda rect: str(image_path)
+            controller = OcrVoiceController(
+                AppConfig(),
+                capture,
+                FakeOcr("text"),
+                FakeTts(),
+            )
+
+            controller.process_selection(Rect(left=10, top=20, width=120, height=80))
+
+            self.assertFalse(image_path.exists())
+
+    def test_captured_image_is_deleted_after_tts_failure(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            image_path = Path(temp_dir) / "capture.png"
+            image_path.write_bytes(b"image")
+            capture = FakeCapture()
+            capture.capture = lambda rect: str(image_path)
+            controller = OcrVoiceController(
+                AppConfig(),
+                capture,
+                FakeOcr("text"),
+                FailingTts(),
+                logger=FakeLogger(),
+            )
+
+            controller.process_selection(Rect(left=10, top=20, width=120, height=80))
+
+            self.assertFalse(image_path.exists())
 
 
 if __name__ == "__main__":

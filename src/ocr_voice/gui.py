@@ -134,6 +134,8 @@ class StatusGui:
         self.root.title("OCR Voice")
         self.root.geometry("560x340")
         self.root.minsize(520, 320)
+        self.root.resizable(False, False)
+        self.root.protocol("WM_DELETE_WINDOW", self.hide_to_background)
         self.messages: "queue.Queue[str]" = queue.Queue()
         self.logger = GuiLog(self.messages)
         self.selection_overlay = SelectionOverlay(self.root, config)
@@ -163,6 +165,9 @@ class StatusGui:
 
     def mainloop(self) -> None:
         self.root.mainloop()
+
+    def hide_to_background(self) -> None:
+        self.root.withdraw()
 
     def _build(self, config: AppConfig) -> None:
         frame = ttk.Frame(self.root, padding=16)

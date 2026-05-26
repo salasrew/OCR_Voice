@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 import time
 from typing import Protocol
 
@@ -128,26 +129,38 @@ class OcrVoiceController:
         )
 
     def _capture_and_speak(self, rect: Rect, *, report_empty: bool = False) -> None:
+        image_path: str | None = None
         try:
             image_path = self._capture.capture(rect)
             text = normalize_text(self._ocr.recognize(image_path))
         except Exception as error:
             self._logger(f"OCR failed: {error}")
+            self._delete_capture(image_path)
             return
-
-        if not text:
-            if report_empty:
-                self._logger("No text recognized.")
-            return
-        if self._is_duplicate(text):
-            return
-
-        self._last_text = text
-        self._last_spoken_at = self._clock()
         try:
-            self._tts.speak(text)
-        except Exception as error:
-            self._logger(f"TTS failed: {error}")
+            if not text:
+                if report_empty:
+                    self._logger("No text recognized.")
+                return
+            if self._is_duplicate(text):
+                return
+
+            self._last_text = text
+            self._last_spoken_at = self._clock()
+            try:
+                self._tts.speak(text)
+            except Exception as error:
+                self._logger(f"TTS failed: {error}")
+        finally:
+            self._delete_capture(image_path)
+
+    def _delete_capture(self, image_path: str | None) -> None:
+        if image_path is None:
+            return
+        try:
+            Path(image_path).unlink(missing_ok=True)
+        except OSError as error:
+            self._logger(f"Capture cleanup failed: {error}")
 
     def _is_duplicate(self, text: str) -> bool:
         if text != self._last_text:
